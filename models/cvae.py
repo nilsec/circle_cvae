@@ -69,7 +69,7 @@ def train(size,
                                          y_logits)
     
     loss = beta * kl_loss + ce
-    opt = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+    opt = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
