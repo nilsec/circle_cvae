@@ -1,6 +1,9 @@
 import numpy as np
 from numpy.random import randint
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 class Circle(object):
     def __init__(self, 
