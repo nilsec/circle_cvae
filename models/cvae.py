@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, './..')
 
 
-from layers_mmd import encoder, decoder, sample_z, kl
+from layers_mmd import encoder, decoder, sample_z, kl, compute_mmd
 import os
 from data import Circle
 import numpy as np
@@ -17,6 +17,7 @@ def train(size,
           epochs,
           snapshot_dir,
           checkpoint_dir,
+          regularizer="mmd",
           z_dim=20):
 
     if not os.path.exists(snapshot_dir):
@@ -65,11 +66,18 @@ def train(size,
     y_out = tf.sigmoid(y_logits)
 
     kl_loss = kl(mean, log_sigma, batch_size)
+    if regularizer == "mmd":
+        true_samples = tf.random_normal(tf.stack([batch_size, z_dim]))
+        reg_loss = compute_mmd(true_samples, mean)
+    else:
+        reg_loss = kl_loss
+
     ce = tf.losses.sigmoid_cross_entropy(y,
                                          y_logits)
     
-    loss = beta * kl_loss + ce
-    opt = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(loss)
+    loss = beta * reg_loss + ce
+    opt = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+    saver = tf.train.Saver()
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
@@ -79,11 +87,11 @@ def train(size,
         batch_x = batch_x.reshape(batch_size, in_height, in_width, 1)
         batch_y = batch_y.reshape(batch_size, in_height, in_width, 1)
 
-        _, ce_i, kl_i, z_i, y_out_i =\
-                sess.run([opt, ce, kl_loss, z, y_out], feed_dict={x: batch_x,
-                                                                  y: batch_y})
+        _, ce_i, kl_i, z_i, y_out_i, reg_i =\
+                sess.run([opt, ce, kl_loss, z, y_out, reg_loss], feed_dict={x: batch_x,
+                                                                            y: batch_y})
         if i % 100 == 0:
-            print("iteration {} - ce: {}, kl: {}".format(i, ce_i, kl_i))
+            print("iteration {} - ce: {}, kl: {}, reg: {}".format(i, ce_i, kl_i, reg_i))
 
         if i % 1000 == 0:
             snapshot_path = os.path.join(snapshot_dir, "snap_{}.h5".format(i))
@@ -104,6 +112,10 @@ def train(size,
                                  data=z_i,
                                  compression='gzip')
 
+        if i % 10000 == 0:
+            saver.save(sess, os.path.join(checkpoint_dir, "cvae"), global_step=i)
+            
+
     sess.close()
 
 if __name__ == "__main__":
@@ -112,8 +124,8 @@ if __name__ == "__main__":
           batch_size=200,
           beta=1.0,
           epochs=100000,
-          snapshot_dir="./snapshots/run_0",
-          checkpoint_dir="./checkpoints/run_0",
+          snapshot_dir="./snapshots/run_3",
+          checkpoint_dir="./checkpoints/run_3",
           z_dim=2)
 
 
