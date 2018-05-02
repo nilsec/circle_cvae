@@ -2,7 +2,6 @@ import numpy as np
 from numpy.random import randint
 import matplotlib.pyplot as plt
 
-
 class Circle(object):
     def __init__(self, 
                  size, 
@@ -40,7 +39,6 @@ class Circle(object):
         plt.imshow(batch[0][batch_number,:,:])
         plt.imshow(batch[1][batch_number,:,:], alpha=0.5)
         plt.show()
-
 
 if __name__== "__main__":
     c = Circle(28, 12)
