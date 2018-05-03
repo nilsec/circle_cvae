@@ -68,7 +68,7 @@ def train(size,
                                          y_logits)
     
     loss = beta * reg_loss + ce
-    opt = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+    opt = tf.train.AdamOptimizer(learning_rate=0.5e-3).minimize(loss)
     saver = tf.train.Saver()
 
     sess = tf.Session()
@@ -121,11 +121,11 @@ if __name__ == "__main__":
     train(size=28, 
           radius=12,
           batch_size=200,
-          beta=100.0,
-          epochs=100000,
-          snapshot_dir="./snapshots/run_14",
-          checkpoint_dir="./checkpoints/run_14",
-          regularizer="mmd",
+          beta=10**(-5),
+          epochs=200000,
+          snapshot_dir="./snapshots/run_22",
+          checkpoint_dir="./checkpoints/run_22",
+          regularizer="kl",
           z_dim=2)
 
 
