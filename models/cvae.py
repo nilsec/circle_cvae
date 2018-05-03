@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, './..')
 
 
-from layers_mmd import encoder, decoder, sample_z, kl, compute_mmd
+from layers import encoder, decoder, sample_z, kl, compute_mmd
 import os
 from data import Circle
 import numpy as np
@@ -65,10 +65,17 @@ def train(size,
     print("y_logits: " + str(y_logits.get_shape().as_list()))
     y_out = tf.sigmoid(y_logits)
 
+    # Test time:
+    z_test = tf.placeholder(tf.float32, shape=[None, z_dim])
+    x_test = tf.placeholder(tf.float32, shape=[None, in_height, in_width, 1])
+    x_test_out = encoder(x_test, z_dim, scope="x_encoder", reuse=True)
+    y_test = tf.sigmoid(decoder(tf.concat([x_test_out, z_test], axis=-1), reuse=True))
+
+
     kl_loss = kl(mean, log_sigma, batch_size)
     if regularizer == "mmd":
         true_samples = tf.random_normal(tf.stack([batch_size, z_dim]))
-        reg_loss = compute_mmd(true_samples, mean)
+        reg_loss = compute_mmd(true_samples, z)
     else:
         reg_loss = kl_loss
 
@@ -112,6 +119,19 @@ def train(size,
                                  data=z_i,
                                  compression='gzip')
 
+                y_test_i, z_test_i = sess.run([y_test, z_test], 
+                                     feed_dict={z_test: np.random.normal(size=(batch_size, z_dim)),
+                                                x_test: batch_x})
+
+                f.create_dataset(name="y_test",
+                                 data=y_test_i[:,:,:,0],
+                                 compression="gzip")
+
+                f.create_dataset(name="z_test",
+                                 data=z_test_i,
+                                 compression="gzip")
+
+
         if i % 10000 == 0:
             saver.save(sess, os.path.join(checkpoint_dir, "cvae"), global_step=i)
             
@@ -122,10 +142,10 @@ if __name__ == "__main__":
     train(size=28, 
           radius=12,
           batch_size=200,
-          beta=1.0,
+          beta=1000.0,
           epochs=100000,
-          snapshot_dir="./snapshots/run_3",
-          checkpoint_dir="./checkpoints/run_3",
+          snapshot_dir="./snapshots/run_11",
+          checkpoint_dir="./checkpoints/run_11",
           z_dim=2)
 
 

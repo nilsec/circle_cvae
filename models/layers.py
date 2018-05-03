@@ -81,9 +81,11 @@ def compute_mmd(x, y):
 
 
 # Encoder and decoder use the DC-GAN architecture
-def encoder(x, z_dim, scope="encoder"):
+def encoder(x, z_dim, scope="encoder", reuse=False):
     print("ENCODER:")
-    with tf.variable_scope(scope):
+    with tf.variable_scope(scope) as vs:
+        if reuse:
+            vs.reuse_variables()
         conv1 = conv2d_lrelu(x, 64, 4, 2)
         print(" conv1: " + str(conv1.get_shape().as_list()))
         conv2 = conv2d_lrelu(conv1, 128, 4, 2)
@@ -97,9 +99,11 @@ def encoder(x, z_dim, scope="encoder"):
         return fc2
 
 
-def decoder(z):
+def decoder(z, reuse=False):
     print("DECODER")
-    with tf.variable_scope('decoder'):
+    with tf.variable_scope("decoder") as vs:
+        if reuse:
+            vs.reuse_variables()
         fc1 = fc_relu(z, 1024)
         print(" fc1: " + str(fc1.get_shape().as_list()))
         fc2 = fc_relu(fc1, 7*7*128)
