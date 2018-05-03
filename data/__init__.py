@@ -1,1 +1,1 @@
-from .circles import Circle
+from .circles import Circle, MovingCircle

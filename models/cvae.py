@@ -4,7 +4,7 @@ sys.path.insert(0, './..')
 
 from layers import encoder, decoder, sample_z, kl, compute_mmd
 import os
-from data import Circle
+from data import Circle, MovingCircle
 import numpy as np
 import tensorflow as tf
 import h5py
@@ -29,8 +29,8 @@ def train(size,
     in_height = size
     in_width = size
 
-    circle = Circle(size, 
-                    radius)
+    circle = MovingCircle(size, 
+                          radius)
 
     x = tf.placeholder(tf.float32, shape=[batch_size, 
                                           in_height, 
@@ -73,9 +73,12 @@ def train(size,
 
 
     kl_loss = kl(mean, log_sigma, batch_size)
+
+    true_samples = tf.random_normal(tf.stack([batch_size, z_dim]))
+    mmd_loss = compute_mmd(true_samples, z)
+
     if regularizer == "mmd":
-        true_samples = tf.random_normal(tf.stack([batch_size, z_dim]))
-        reg_loss = compute_mmd(true_samples, z)
+        reg_loss = mmd_loss
     else:
         reg_loss = kl_loss
 
@@ -83,7 +86,7 @@ def train(size,
                                          y_logits)
     
     loss = beta * reg_loss + ce
-    opt = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(loss)
+    opt = tf.train.AdamOptimizer(learning_rate=0.5e-3).minimize(loss)
     saver = tf.train.Saver()
 
     sess = tf.Session()
@@ -94,11 +97,11 @@ def train(size,
         batch_x = batch_x.reshape(batch_size, in_height, in_width, 1)
         batch_y = batch_y.reshape(batch_size, in_height, in_width, 1)
 
-        _, ce_i, kl_i, z_i, y_out_i, reg_i =\
-                sess.run([opt, ce, kl_loss, z, y_out, reg_loss], feed_dict={x: batch_x,
+        _, ce_i, kl_i, z_i, y_out_i, mmd_i =\
+                sess.run([opt, ce, kl_loss, z, y_out, mmd_loss], feed_dict={x: batch_x,
                                                                             y: batch_y})
         if i % 100 == 0:
-            print("iteration {} - ce: {}, kl: {}, reg: {}".format(i, ce_i, kl_i, reg_i))
+            print("iteration {} - ce: {}, kl: {}, mmd: {}".format(i, ce_i, kl_i, mmd_i))
 
         if i % 1000 == 0:
             snapshot_path = os.path.join(snapshot_dir, "snap_{}.h5".format(i))
@@ -142,10 +145,10 @@ if __name__ == "__main__":
     train(size=28, 
           radius=12,
           batch_size=200,
-          beta=1000.0,
+          beta=10**(-4),
           epochs=100000,
-          snapshot_dir="./snapshots/run_11",
-          checkpoint_dir="./checkpoints/run_11",
+          snapshot_dir="./snapshots/run_24",
+          checkpoint_dir="./checkpoints/run_24",
           z_dim=2)
 
 
